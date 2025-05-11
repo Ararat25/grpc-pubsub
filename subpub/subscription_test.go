@@ -1,11 +1,12 @@
 package subpub
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestUnsubscribe проверяет, что после отписки обработчик больше не получает сообщения.

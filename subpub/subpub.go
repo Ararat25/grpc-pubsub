@@ -107,8 +107,8 @@ func (s *subPub) Close(ctx context.Context) error {
 		for _, sub := range subs {
 			wg.Add(1)
 			go func(s *subscription) {
+				defer wg.Done()
 				s.Unsubscribe()
-				wg.Done()
 			}(sub)
 		}
 	}

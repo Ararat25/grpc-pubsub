@@ -1,3 +1,4 @@
 server:
+  host: "localhost"
   port: 8080
   timeout: 5s

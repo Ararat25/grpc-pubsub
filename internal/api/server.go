@@ -3,13 +3,14 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
+
 	pubsub "github.com/Ararat25/grpc-pubsub/internal/proto"
 	"github.com/Ararat25/grpc-pubsub/subpub"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"log"
 )
 
 // server - структура для работы с grpc-сервером

@@ -5,26 +5,16 @@ UNAME := $(shell uname 2>/dev/null)
 ifeq ($(OS),Windows_NT)
     ifneq (,$(findstring MINGW,$(UNAME)))
         BINARY := main
-        RUN := ./$(BINARY)
     else
         BINARY := main.exe
-        RUN := $(BINARY)
     endif
 else
     BINARY := main
-    RUN := ./$(BINARY)
 endif
-
-.PHONY: run
-run:
-	cd cmd && $(RUN)
 
 .PHONY: build
 build:
 	cd cmd && go build -o $(BINARY)
-
-.PHONY: start
-start: build run
 
 .PHONY: test
 test:

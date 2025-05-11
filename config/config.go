@@ -1,12 +1,13 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v3"
 )
 
 const EnvFileName = ".env"
@@ -18,6 +19,7 @@ type Config struct {
 
 // ServerConfig структура для парсинга файла конфигурации
 type ServerConfig struct {
+	Host    string        `yaml:"host"`
 	Port    int           `yaml:"port"`
 	Timeout time.Duration `yaml:"timeout"`
 }

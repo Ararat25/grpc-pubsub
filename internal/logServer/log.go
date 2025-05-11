@@ -2,9 +2,10 @@ package logServer
 
 import (
 	"context"
-	"google.golang.org/grpc"
 	"log"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 // LoggingUnaryInterceptor - interceptor для логирования одиночных gRPC-запросов на сервере

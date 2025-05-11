@@ -3,17 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/Ararat25/grpc-pubsub/config"
 	"github.com/Ararat25/grpc-pubsub/internal/api"
 	"github.com/Ararat25/grpc-pubsub/internal/logServer"
 	pubsub "github.com/Ararat25/grpc-pubsub/internal/proto"
 	"github.com/Ararat25/grpc-pubsub/subpub"
 	"google.golang.org/grpc"
-	"log"
-	"net"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 
 // runServer запускает grpc-сервер и обрабатку для graceful shutdown
 func runServer(conf *config.Config) {
-	port := fmt.Sprintf(":%d", conf.Server.Port)
+	port := fmt.Sprintf("%s:%d", conf.Server.Host, conf.Server.Port)
 
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
@@ -61,18 +62,11 @@ func runServer(conf *config.Config) {
 	ctx, cancel := context.WithTimeout(context.Background(), conf.Server.Timeout)
 	defer cancel()
 
-	// Завершение с тайм-аутом
-	stopped := make(chan struct{})
-	go func() {
-		grpcServer.GracefulStop()
-		close(stopped)
-	}()
-
-	select {
-	case <-ctx.Done():
-		log.Println("shutdown timeout reached, forcing stop")
-		grpcServer.Stop()
-	case <-stopped:
-		log.Println("server stopped gracefully")
+	err = subpubService.Close(ctx)
+	if err != nil {
+		log.Printf("failed attempt to close the subpub bus: %v", err)
 	}
+
+	grpcServer.Stop()
+	log.Println("server stopped gracefully")
 }
