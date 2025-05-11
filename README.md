@@ -203,3 +203,4 @@ message Event {
 1. Добавлено логирование одиночных и потоковых gRPC-запросов через Interceptor
 2. Реализован паттерн graceful shutdown для завершения работы сервера
 3. Реализован паттерн dependency injection: srv := api.NewServer(subpubService)
+4. Написаны unit-тесты для сервера
