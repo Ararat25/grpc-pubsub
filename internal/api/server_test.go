@@ -16,7 +16,7 @@ func startTestServer(t *testing.T) (pubsub.PubSubClient, func()) {
 	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer()
-	s := &service{subPub: subpub.NewSubPub()}
+	s := &server{subPub: subpub.NewSubPub()}
 	pubsub.RegisterPubSubServer(grpcServer, s)
 
 	go grpcServer.Serve(lis)

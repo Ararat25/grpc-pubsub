@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	pubsub "github.com/Ararat25/grpc-pubsub/internal/proto"
 	"github.com/Ararat25/grpc-pubsub/subpub"
@@ -13,25 +12,28 @@ import (
 	"log"
 )
 
-type service struct {
+// server - структура для работы с grpc-сервером
+type server struct {
 	pubsub.UnimplementedPubSubServer
-	subPub subpub.SubPub
+	subPub subpub.SubPub // объект структуры subpub.SubPub для работы с пакетом subpub
 }
 
-func NewService(subPub subpub.SubPub) pubsub.PubSubServer {
-	return &service{
+// NewServer создает и возвращает объект pubsub.PubSubServer
+func NewServer(subPub subpub.SubPub) pubsub.PubSubServer {
+	return &server{
 		subPub: subPub,
 	}
 }
 
-func (s *service) Subscribe(r *pubsub.SubscribeRequest, stream grpc.ServerStreamingServer[pubsub.Event]) error {
+// Subscribe подписывает клиента на определенную тему
+func (s *server) Subscribe(r *pubsub.SubscribeRequest, stream grpc.ServerStreamingServer[pubsub.Event]) error {
 	subject := r.GetKey()
 	if subject == "" {
-		return errors.New("the request is missing a key")
+		return status.Error(codes.InvalidArgument, "missing key")
 	}
 
 	if s.subPub == nil {
-		return errors.New("subpub service is not initialized")
+		return status.Error(codes.Internal, "subpub server not initialized")
 	}
 
 	ctx := stream.Context()
@@ -52,10 +54,10 @@ func (s *service) Subscribe(r *pubsub.SubscribeRequest, stream grpc.ServerStream
 		}
 	})
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, fmt.Sprintf("failed to subscribe client: %v", err))
 	}
 
-	// Отписываемся после завершения работы функции (например, при отключении клиента).
+	// Отписываемся после завершения работы функции (при отключении клиента).
 	defer func() {
 		subscribe.Unsubscribe()
 		log.Printf("client unsubscribed from subject: %s", subject)
@@ -64,26 +66,34 @@ func (s *service) Subscribe(r *pubsub.SubscribeRequest, stream grpc.ServerStream
 	// Блокируем выполнение, пока клиент не отключится.
 	<-ctx.Done()
 	log.Printf("client context canceled for subject: %s", subject)
-	return ctx.Err()
+	return nil
 }
 
-func (s *service) Publish(ctx context.Context, r *pubsub.PublishRequest) (*emptypb.Empty, error) {
+// Publish публикует в теме данные
+func (s *server) Publish(ctx context.Context, r *pubsub.PublishRequest) (*emptypb.Empty, error) {
 	subject := r.GetKey()
 	if subject == "" {
 		return nil, status.Error(codes.InvalidArgument, "missing key")
 	}
 
 	if s.subPub == nil {
-		return nil, status.Error(codes.Internal, "subpub service not initialized")
+		return nil, status.Error(codes.Internal, "subpub server not initialized")
 	}
 
 	event := &pubsub.Event{
 		Data: r.GetData(),
 	}
 
+	// Проверяем, не отменён ли контекст перед публикацией
+	select {
+	case <-ctx.Done():
+		return nil, status.Error(codes.Canceled, "request canceled by client")
+	default:
+	}
+
 	err := s.subPub.Publish(subject, event)
 	if err != nil {
-		return nil, status.Error(codes.Unknown, fmt.Sprintf("failed to publish event: %v", err))
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to publish event: %v", err))
 	}
 
 	return &emptypb.Empty{}, nil

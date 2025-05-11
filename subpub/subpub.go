@@ -6,14 +6,16 @@ import (
 	"sync"
 )
 
-// MessageHandler is a callback function that processes messages delivered to subscribers.
+// MessageHandler это функция обратного вызова, которая обрабатывает сообщения, доставляемые подписчикам.
 type MessageHandler func(msg interface{})
 
+// Subscription - интерфейс подписчика
 type Subscription interface {
 	// Unsubscribe will remove interest in the current subject subscription is for.
 	Unsubscribe()
 }
 
+// SubPub - интерфейс Publisher-Subscriber сервиса
 type SubPub interface {
 	// Subscribe creates an asynchronous queue subscriber on the given subject.
 	Subscribe(subject string, cb MessageHandler) (Subscription, error)
@@ -26,18 +28,21 @@ type SubPub interface {
 	Close(ctx context.Context) error
 }
 
+// subPub - реализует интерфейс SubPub
 type subPub struct {
-	subscribers map[string][]*subscription
-	mu          sync.RWMutex
-	closed      bool
+	subscribers map[string][]*subscription // мапа для хранения подписок по темам
+	mu          sync.RWMutex               // mutex для контроля состояния гонки при использовании горутин
+	closed      bool                       // флаг для состояния сервиса
 }
 
+// NewSubPub создает и возвращает объект реализующий интерфейс SubPub
 func NewSubPub() SubPub {
 	return &subPub{
 		subscribers: make(map[string][]*subscription),
 	}
 }
 
+// Subscribe создает нового подписчика, запускает его обработчик и возвращает объект Subscription для дальнейшей работы с подпиской
 func (s *subPub) Subscribe(subject string, cb MessageHandler) (Subscription, error) {
 	if cb == nil {
 		return nil, errors.New("callback function cannot be nil")
@@ -67,6 +72,7 @@ func (s *subPub) Subscribe(subject string, cb MessageHandler) (Subscription, err
 	return subsc, nil
 }
 
+// Publish рассылает сообщения всем подписчикам в теме
 func (s *subPub) Publish(subject string, msg interface{}) error {
 	if s.closed {
 		return errors.New("subPub system is closed")
@@ -81,6 +87,7 @@ func (s *subPub) Publish(subject string, msg interface{}) error {
 	return nil
 }
 
+// Close закрывает шину передачи данных и закрывает все каналы у подписок
 func (s *subPub) Close(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -120,6 +127,7 @@ func (s *subPub) Close(ctx context.Context) error {
 	}
 }
 
+// unsubscribe отписывает подписчика от темы
 func (s *subPub) unsubscribe(subject string, sub *subscription) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
